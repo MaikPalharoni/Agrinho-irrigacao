@@ -6,7 +6,7 @@ const char* ssid = "NOME_DO_WIFI";
 const char* password = "SENHA_DO_WIFI";
 
 // URL da API (Substitua pelo link gratuito da Render ou IP Local)
-const char* serverUrl = "https://onrender.com";
+const char* serverUrl = "https://irriga-o-servidor-2.onrender.com";
 
 // Definição exata dos pinos para o ESP-01
 const int pinoUmidade = 3; // Usando o pino RX (GPIO 3) como entrada digital
