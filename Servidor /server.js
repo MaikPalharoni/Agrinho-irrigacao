@@ -2,7 +2,7 @@
 async function conectarAppAoServidor() {
   try {
     // O App faz um pedido 'GET' direcionado à rota de status atual da nossa API no Render
-    const resposta = await fetch('https://irriga-o-servidor-2.onrender.com');
+    const resposta = await fetch('https://agrinho-irrigacao-4.onrender.com');
     const dadosCampo = await resposta.json(); // Recebe o JSON do servidor
 
     // Injeta os dados recebidos direto nos componentes visuais do aplicativo
