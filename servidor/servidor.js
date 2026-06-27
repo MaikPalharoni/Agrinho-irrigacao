@@ -11,9 +11,12 @@ app.use(express.json());
 
 // 1. Objeto que guarda o status mais recente enviado pelo ESP-01
 let dadosLavouraAtual = {
-  umidadeStatus: "Sem dados", // Receberá "Seco" ou "Umido"
-  chuva: false,
-  bombaStatus: false,
+  umidadeStatus: "Seco",       // Valor inicial padrão
+  bombaStatus: false,          // Valor inicial padrão
+  chuva: false,                // Valor inicial padrão
+  umidade: 42,                 // Valor numérico padrão (0 a 100)
+  temperatura: 28,             // Grau Celsius padrão (opcional)
+  vento: 12,                   // km/h padrão (opcional)
   ultimaAtualizacao: "Aguardando conexão..."
 };
 
@@ -24,9 +27,21 @@ let historicoLeituras = [];
 // ROTAS DA API
 // ==========================================
 
-// ROTA EXTRA: Rota raiz para conferir no navegador se o servidor subiu com sucesso
+// ROTA RAIZ: Conferir no navegador se o servidor subiu com sucesso
 app.get('/', (req, res) => {
   return res.status(200).send("Servidor do Agrinho Rodando com Sucesso!");
+});
+
+// NOVA ROTA: Rota de status integrada com as variáveis do sistema
+app.get('/status', (req, res) => {
+  return res.status(200).json({
+    umidadeStatus: dadosLavouraAtual.umidadeStatus,
+    bombaStatus: dadosLavouraAtual.bombaStatus,
+    chuva: dadosLavouraAtual.chuva,
+    umidade: dadosLavouraAtual.umidade,
+    temperatura: dadosLavouraAtual.temperatura,
+    vento: dadosLavouraAtual.vento
+  });
 });
 
 // ROTA 1: O ESP-01 chama essa rota via POST para enviar os dados do campo
@@ -34,21 +49,30 @@ app.post('/api/sensor-data', (req, res) => {
   const umidadeStatus = req.body.umidadeStatus;
   const chuva = req.body.chuva;
   const bombaStatus = req.body.bombaStatus;
+  
+  // Captura dados numéricos se o ESP-01 enviar, senão mantém o padrão anterior
+  const umidade = req.body.umidade !== undefined ? req.body.umidade : dadosLavouraAtual.umidade;
+  const temperatura = req.body.temperatura !== undefined ? req.body.temperatura : dadosLavouraAtual.temperatura;
+  const vento = req.body.vento !== undefined ? req.body.vento : dadosLavouraAtual.vento;
+  
   const horarioAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  // Atualiza o estado atual do sistema
+  // Atualiza o estado atual do sistema dinamicamente
   dadosLavouraAtual = {
     umidadeStatus: umidadeStatus, // "Seco" ou "Umido"
-    chuva: chuva, // true ou false
-    bombaStatus: bombaStatus, // true ou false
+    chuva: chuva,                 // true ou false
+    bombaStatus: bombaStatus,     // true ou false
+    umidade: umidade,             // número enviado pelo ESP
+    temperatura: temperatura,     // número enviado pelo ESP
+    vento: vento,                 // número enviado pelo ESP
     ultimaAtualizacao: horarioAtual
   };
 
-  // Salva no histórico (guarda no máximo as últimas 20 leituras para não lotar a memória)
+  // Salva no histórico (guarda no máximo as últimas 20 leituras)
   historicoLeituras.push({
     hora: horarioAtual,
-    // Converte o status de texto em um número fictício para o gráfico do app conseguir desenhar a linha
-    umidadeGrafico: umidadeStatus === "Umido" ? 75 : 30
+    // Usa a porcentagem real se disponível, senão usa o valor fictício baseado no texto
+    umidadeGrafico: req.body.umidade !== undefined ? req.body.umidade : (umidadeStatus === "Umido" ? 75 : 30)
   });
 
   if (historicoLeituras.length > 20) {
