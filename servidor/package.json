@@ -1,0 +1,16 @@
+{
+  "name": "agrinho-irrigacao-servidor",
+  "version": "1.0.0",
+  "description": "Servidor Node.js/Express que recebe dados do ESP8266 e alimenta o painel web do sistema de irrigação Agrinho",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
