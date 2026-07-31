@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Irrigação Agrinho — Monitoramento</title>
+  <meta name="description" content="Painel de monitoramento de irrigação e umidade do solo" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─────────────── RESET & BASE ─────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #f4f7f4;
+      --card:        #ffffff;
+      --border:      #dde8dd;
+      --primary:     #3a7d44;
+      --primary-lt:  #e6f4e8;
+      --primary-dk:  #2a5e32;
+      --text:        #1a2e1c;
+      --text-muted:  #6b836d;
+      --accent-blue: #4a7fa5;
+      --accent-warn: #c07c2a;
+      --radius:      14px;
+      --shadow:      0 1px 4px rgba(30, 60, 30, .07), 0 4px 16px rgba(30, 60, 30, .06);
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100dvh;
+      line-height: 1.5;
+    }
+
+    /* ─────────────── HEADER ─────────────── */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg { color: #fff; }
+
+    .brand-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(58, 125, 68, .08);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .dot-live {
+      position: relative;
+      width: 8px;
+      height: 8px;
+      flex-shrink: 0;
+    }
+
+    .dot-live span {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .dot-live span:first-child {
+      animation: ping 1.4s ease-in-out infinite;
+      opacity: .6;
+    }
+
+    @keyframes ping {
+      0%   { transform: scale(1); opacity: .6; }
+      70%  { transform: scale(2); opacity: 0; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+
+    .badge-txt { display: none; }
+    @media (min-width: 480px) { .badge-txt { display: inline; } }
+
+    /* ─────────────── MAIN LAYOUT ─────────────── */
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .section-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .section-head { margin-bottom: 20px; }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 620px) {
+      .grid-cards { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (min-width: 900px) {
+      .grid-cards { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    .history-wrap { margin-top: 14px; }
+
+    /* ─────────────── CARD BASE ─────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .card-title svg { color: var(--primary); flex-shrink: 0; }
+
+    /* ─────────────── CIRCULAR CHART (SVG) ─────────────── */
+    .radial-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .radial-svg { overflow: visible; display: block; }
+
+    .radial-track { fill: none; stroke: var(--primary-lt); stroke-width: 18; }
+    .radial-fill  { fill: none; stroke: var(--primary);    stroke-width: 18; stroke-linecap: round; transition: stroke-dashoffset .7s ease; }
+
+    .radial-center-pct {
+      font-size: 34px;
+      font-weight: 700;
+      fill: var(--text);
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .radial-center-lbl {
+      font-size: 13px;
+      fill: var(--text-muted);
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    /* ─────────────── WEATHER CARD ─────────────── */
+    .weather-main {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .weather-icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: var(--primary-lt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .4s;
+    }
+
+    .weather-icon-box.rain { background: #e3edf5; }
+
+    .weather-icon-box svg { transition: color .4s; }
+
+    .weather-label {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .weather-hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .weather-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .weather-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(58, 125, 68, .05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .weather-stat svg { color: var(--primary); flex-shrink: 0; }
+
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+
+    .stat-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* ─────────────── PUMP CARD ─────────────── */
+    .pump-main {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .pump-icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: var(--primary-lt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+
+    .pump-icon-box.off {
+      background: #f0f0f0;
+    }
+
+    .pump-icon-box svg { transition: color .3s; }
+
+    .pump-status-lbl {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .pump-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .pump-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(58, 125, 68, .05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+
+    .pump-control-lbl {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .dot-status {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #c0c0c0;
+      transition: background .3s;
+      flex-shrink: 0;
+    }
+
+    .dot-status.on { background: var(--primary); }
+
+    /* ─────────────── TOGGLE SWITCH ─────────────── */
+    .switch {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 46px;
+      height: 26px;
+      background: #d0d8d1;
+      border-radius: 999px;
+      cursor: pointer;
+      position: relative;
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+
+    .switch::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.18);
+      transition: transform .25s;
+    }
+
+    .switch:checked {
+      background: var(--primary);
+    }
+
+    .switch:checked::after {
+      transform: translateX(20px);
+    }
+
+    .switch:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* ─────────────── LINE CHART ─────────────── */
+    .chart-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .line-svg {
+      display: block;
+      width: 100%;
+      height: 220px;
+    }
+
+    .axis-label {
+      font-size: 11px;
+      fill: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .chart-grid-line { stroke: var(--border); stroke-dasharray: 4 4; }
+
+    .chart-line {
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chart-area { fill: url(#areaGrad); }
+
+    .chart-dot {
+      fill: var(--primary);
+      stroke: #fff;
+      stroke-width: 2;
+    }
+
+    /* tooltip */
+    #chart-tooltip {
+      position: absolute;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      pointer-events: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,.10);
+      opacity: 0;
+      transition: opacity .15s;
+    }
+
+    .chart-dot-hover {
+      fill: var(--primary);
+      stroke: var(--primary-lt);
+      stroke-width: 4;
+      cursor: pointer;
+    }
+
+    /* ─────────────── CHIPS ─────────────── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 999px;
+      padding: 3px 10px;
+    }
+
+    .chip-green { background: var(--primary-lt); color: var(--primary-dk); }
+    .chip-warn  { background: #fff3e0; color: var(--accent-warn); }
+    .chip-blue  { background: #e3edf5; color: var(--accent-blue); }
+    .chip-gray  { background: #f0f0f0; color: #6b6b6b; }
+
+    /* ─────────────── CONEXAO ERRO ─────────────── */
+    #conn-error {
+      display: none;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #9a3a1e;
+      background: #fdf2ed;
+      border: 1px solid #f0c5ad;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: none;
+      align-items: center;
+      gap: 7px;
+    }
+
+    #conn-error::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #c0603a;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ════════════════════ HEADER ════════════════════ -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <!-- leaf icon -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">Irrigação Agrinho</div>
+          <div class="brand-sub">Monitoramento em tempo real</div>
+        </div>
+      </div>
+
+      <div class="status-badge">
+        <div class="dot-live">
+          <span></span>
+          <span></span>
+        </div>
+        <!-- wifi icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/>
+        </svg>
+        <span class="badge-txt">Conectado</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════════ MAIN ════════════════════ -->
+  <main>
+    <div class="section-head">
+      <div class="section-title">Setor 1 &mdash; Talhão Norte</div>
+      <div class="section-sub" id="last-update">Aguardando dados...</div>
+      <div id="conn-error">Falha na conexao com o servidor. Tentando novamente...</div>
+    </div>
+
+    <!-- ── 3 CARDS TOP ── -->
+    <div class="grid-cards">
+
+      <!-- CARD 1: Umidade do Solo -->
+      <div class="card" id="card-umidade">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>
+          </svg>
+          Umidade do Solo
+        </div>
+
+        <div class="radial-wrap">
+          <svg class="radial-svg" viewBox="0 0 200 200" width="200" height="200" aria-label="Umidade do solo">
+            <defs>
+              <linearGradient id="radGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#3a7d44"/>
+                <stop offset="100%" stop-color="#5aa85c"/>
+              </linearGradient>
+            </defs>
+            <!-- track -->
+            <circle class="radial-track" cx="100" cy="100" r="72" />
+            <!-- fill — stroke-dasharray=circumference, dashoffset set by JS -->
+            <circle
+              id="radial-fill"
+              class="radial-fill"
+              cx="100" cy="100" r="72"
+              stroke="url(#radGrad)"
+              transform="rotate(-90 100 100)"
+            />
+            <!-- center text -->
+            <text id="radial-pct" class="radial-center-pct" x="100" y="95">—%</text>
+            <text id="radial-lbl" class="radial-center-lbl" x="100" y="118">Aguardando</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- CARD 2: Clima -->
+      <div class="card" id="card-clima">
+        <div class="card-title">
+          Condicao do Clima
+        </div>
+
+        <div class="weather-main">
+          <div class="weather-icon-box" id="weather-icon-box">
+            <!-- sol (default) -->
+            <svg id="weather-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+          </div>
+          <div>
+            <div class="weather-label" id="status-chuva">Aguardando...</div>
+            <div class="weather-hint" id="weather-hint">Verificando...</div>
+          </div>
+        </div>
+
+        <div class="weather-grid">
+          <div class="weather-stat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+            </svg>
+            <div>
+              <div class="stat-lbl">Temperatura</div>
+              <div class="stat-val" id="temperatura">--°C</div>
+            </div>
+          </div>
+          <div class="weather-stat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/>
+            </svg>
+            <div>
+              <div class="stat-lbl">Vento</div>
+              <div class="stat-val" id="vento">-- km/h</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: Bomba -->
+      <div class="card" id="card-bomba">
+        <div class="card-title">
+          Bomba de Agua
+        </div>
+
+        <div class="pump-main">
+          <div class="pump-icon-box off" id="pump-icon-box">
+            <svg id="pump-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a0a8a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div>
+            <div class="pump-status-lbl" id="status-bomba">--</div>
+            <div class="pump-sub" id="pump-sub">Aguardando dados...</div>
+          </div>
+        </div>
+
+        <div class="pump-control">
+          <div class="pump-control-lbl">
+            <span class="dot-status" id="dot-status"></span>
+            Controle manual
+          </div>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            id="switch-bomba"
+            aria-label="Ligar ou desligar a bomba"
+          />
+        </div>
+      </div>
+
+    </div><!-- /grid-cards -->
+
+    <!-- ── HISTORICO ── -->
+    <div class="history-wrap">
+      <div class="card">
+        <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:8px;">
+          <div>
+            <div class="card-title" style="font-size:14px; color:var(--text);">Historico de Umidade</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">Ultimas horas de leitura do sensor</div>
+          </div>
+          <span class="chip chip-green" id="hist-status">Coletando dados</span>
+        </div>
+
+        <div class="chart-wrap" style="position:relative;">
+          <svg id="line-chart" class="line-svg" viewBox="0 0 700 200" preserveAspectRatio="xMidYMid meet" aria-label="Grafico de historico de umidade">
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#3a7d44" stop-opacity=".18"/>
+                <stop offset="100%" stop-color="#3a7d44" stop-opacity=".02"/>
+              </linearGradient>
+            </defs>
+            <!-- grid lines are drawn by JS -->
+            <g id="chart-grid"></g>
+            <g id="chart-axes"></g>
+            <path id="chart-area-path" class="chart-area"/>
+            <path id="chart-line-path" class="chart-line"/>
+            <g id="chart-dots"></g>
+          </svg>
+          <div id="chart-tooltip"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ════════════════════ TOOLTIP DIV ════════════════════ -->
+
+  <!-- ════════════════════ SCRIPT ════════════════════ -->
+  <script>
+    /* ──────── CONFIGURAÇÕES ──────── */
+    /* Aponta para a rota que retorna JSON com os campos do sensor.
+       Se o servidor usar outra rota (ex: /dados, /api), ajuste aqui. */
+    const API_URL = 'https://agrinho-irrigacao-4.onrender.com/status';
+    const CIRCUNFERENCIA = 2 * Math.PI * 72; // raio=72
+
+    /* ──────── ESTADO LOCAL ──────── */
+    let historicoUmidade = [];
+    let bombaManual = null; // null = segue servidor; true/false = manual override
+
+    /* ──────── SWITCH: controle manual ──────── */
+    const switchBomba = document.getElementById('switch-bomba');
+    switchBomba.addEventListener('change', () => {
+      bombaManual = switchBomba.checked;
+      atualizarCardBomba(bombaManual);
+    });
+
+    /* ──────── HELPERS ──────── */
+    function horaAtual() {
+      const d = new Date();
+      return d.getHours().toString().padStart(2,'0') + 'h' + d.getMinutes().toString().padStart(2,'0');
+    }
+
+    function statusUmidade(v) {
+      if (v < 30) return { texto: 'Solo Seco',    chip: 'chip-warn'  };
+      if (v < 60) return { texto: 'Ideal',         chip: 'chip-green' };
+      return              { texto: 'Encharcado',   chip: 'chip-blue'  };
+    }
+
+    /* ──────── RADIAL CHART ──────── */
+    function atualizarRadial(valor) {
+      const fill   = document.getElementById('radial-fill');
+      const pctTxt = document.getElementById('radial-pct');
+      const lblTxt = document.getElementById('radial-lbl');
+
+      const offset = CIRCUNFERENCIA - (valor / 100) * CIRCUNFERENCIA;
+      fill.style.strokeDasharray  = CIRCUNFERENCIA;
+      fill.style.strokeDashoffset = offset;
+
+      pctTxt.textContent = valor + '%';
+      const st = statusUmidade(valor);
+      lblTxt.textContent = st.texto;
+
+      if (valor < 30) {
+        fill.style.stroke = '#c07c2a';
+      } else if (valor >= 60) {
+        fill.style.stroke = '#4a7fa5';
+      } else {
+        fill.style.stroke = 'url(#radGrad)';
+      }
+    }
+
+    /* ──────── CARD CLIMA ──────── */
+    function atualizarCardClima(chovendo) {
+      const iconBox   = document.getElementById('weather-icon-box');
+      const iconEl    = document.getElementById('weather-icon');
+      const labelEl   = document.getElementById('status-chuva');
+      const hintEl    = document.getElementById('weather-hint');
+
+      if (chovendo) {
+        iconBox.className = 'weather-icon-box rain';
+        iconEl.setAttribute('stroke', '#4a7fa5');
+        iconEl.innerHTML = `
+          <cloud-rain>
+          <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/>
+          <line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="23" x2="8" y2="25"/>
+          <line x1="12" y1="18" x2="12" y2="20"/><line x1="12" y1="22" x2="12" y2="24"/>
+          <line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="23" x2="16" y2="25"/>
+          </cloud-rain>`;
+        // Ícone chuva via path real
+        iconEl.innerHTML = `
+          <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/>
+          <line x1="8" y1="19" x2="8" y2="21"/>
+          <line x1="12" y1="18" x2="12" y2="20"/>
+          <line x1="16" y1="19" x2="16" y2="21"/>`;
+        labelEl.textContent = 'Chovendo';
+        hintEl.textContent  = 'Irrigacao suspensa';
+      } else {
+        iconBox.className = 'weather-icon-box';
+        iconEl.setAttribute('stroke', 'var(--primary)');
+        iconEl.innerHTML = `
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>`;
+        labelEl.textContent = 'Tempo Seco';
+        hintEl.textContent  = 'Recomenda-se irrigar';
+      }
+    }
+
+    /* ──────── CARD BOMBA ──────── */
+    function atualizarCardBomba(ligada) {
+      const lbl     = document.getElementById('status-bomba');
+      const sub     = document.getElementById('pump-sub');
+      const iconBox = document.getElementById('pump-icon-box');
+      const iconEl  = document.getElementById('pump-icon');
+      const dot     = document.getElementById('dot-status');
+
+      lbl.textContent = ligada ? 'Ligada' : 'Desligada';
+      sub.textContent = ligada ? 'Irrigando o setor 1' : 'Sistema em espera';
+
+      if (ligada) {
+        iconBox.className = 'pump-icon-box';
+        iconEl.setAttribute('stroke', 'var(--primary)');
+        iconEl.innerHTML = `
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <circle cx="12" cy="16" r=".5" fill="var(--primary)"/>`;
+        dot.className = 'dot-status on';
+        switchBomba.checked = true;
+      } else {
+        iconBox.className = 'pump-icon-box off';
+        iconEl.setAttribute('stroke', '#a0a8a0');
+        iconEl.innerHTML = `
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <circle cx="12" cy="16" r=".5"/>`;
+        dot.className = 'dot-status';
+        switchBomba.checked = false;
+      }
+    }
+
+    /* ──────── LINE CHART ──────── */
+    const CHART = {
+      W: 700, H: 200,
+      padL: 46, padR: 16, padT: 16, padB: 36,
+    };
+
+    function drawLineChart(dados) {
+      if (!dados || dados.length < 2) return;
+
+      const grid  = document.getElementById('chart-grid');
+      const axes  = document.getElementById('chart-axes');
+      const aPath = document.getElementById('chart-area-path');
+      const lPath = document.getElementById('chart-line-path');
+      const dots  = document.getElementById('chart-dots');
+      const tt    = document.getElementById('chart-tooltip');
+
+      grid.innerHTML = '';
+      axes.innerHTML = '';
+      dots.innerHTML = '';
+
+      const innerW = CHART.W - CHART.padL - CHART.padR;
+      const innerH = CHART.H - CHART.padT - CHART.padB;
+
+      const valores = dados.map(d => d.umidade);
+      const minV = Math.max(0,  Math.floor(Math.min(...valores) / 10) * 10 - 10);
+      const maxV = Math.min(100, Math.ceil(Math.max(...valores)  / 10) * 10 + 10);
+      const rangeV = maxV - minV;
+
+      function xPos(i) { return CHART.padL + (i / (dados.length - 1)) * innerW; }
+      function yPos(v) { return CHART.padT + innerH - ((v - minV) / rangeV) * innerH; }
+
+      /* grid horizontal */
+      const ySteps = 5;
+      for (let i = 0; i <= ySteps; i++) {
+        const v = minV + (rangeV / ySteps) * i;
+        const y = yPos(v);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', CHART.padL); line.setAttribute('x2', CHART.W - CHART.padR);
+        line.setAttribute('y1', y); line.setAttribute('y2', y);
+        line.setAttribute('class', 'chart-grid-line');
+        grid.appendChild(line);
+
+        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lbl.setAttribute('x', CHART.padL - 6);
+        lbl.setAttribute('y', y + 4);
+        lbl.setAttribute('class', 'axis-label');
+        lbl.setAttribute('text-anchor', 'end');
+        lbl.textContent = Math.round(v) + '%';
+        axes.appendChild(lbl);
+      }
+
+      /* eixo X horas */
+      dados.forEach((d, i) => {
+        const x = xPos(i);
+        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lbl.setAttribute('x', x);
+        lbl.setAttribute('y', CHART.H - 10);
+        lbl.setAttribute('class', 'axis-label');
+        lbl.setAttribute('text-anchor', 'middle');
+        lbl.textContent = d.hora;
+        axes.appendChild(lbl);
+      });
+
+      /* area path */
+      const firstX = xPos(0), firstY = yPos(dados[0].umidade);
+      const lastX  = xPos(dados.length - 1);
+      let linePts  = `M ${firstX} ${firstY}`;
+      dados.forEach((d, i) => {
+        if (i === 0) return;
+        const px = xPos(i - 1), py = yPos(dados[i-1].umidade);
+        const cx = xPos(i),     cy = yPos(d.umidade);
+        const cpx = (px + cx) / 2;
+        linePts += ` C ${cpx} ${py} ${cpx} ${cy} ${cx} ${cy}`;
+      });
+      lPath.setAttribute('d', linePts);
+
+      const bottom = CHART.padT + innerH;
+      aPath.setAttribute('d', linePts + ` L ${lastX} ${bottom} L ${firstX} ${bottom} Z`);
+
+      /* dots com hover */
+      dados.forEach((d, i) => {
+        const x = xPos(i), y = yPos(d.umidade);
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x); circle.setAttribute('cy', y);
+        circle.setAttribute('r', '5');
+        circle.setAttribute('class', 'chart-dot chart-dot-hover');
+
+        const svgEl = document.getElementById('line-chart');
+        circle.addEventListener('mousemove', (e) => {
+          const rect = svgEl.getBoundingClientRect();
+          tt.style.left    = (e.clientX - rect.left + 10) + 'px';
+          tt.style.top     = (e.clientY - rect.top  - 36) + 'px';
+          tt.textContent   = d.hora + ' — ' + d.umidade + '%';
+          tt.style.opacity = '1';
+        });
+        circle.addEventListener('mouseleave', () => { tt.style.opacity = '0'; });
+
+        dots.appendChild(circle);
+      });
+    }
+
+    /* ──────── ADICIONA PONTO AO HISTORICO ──────── */
+    function adicionarHistorico(umidade) {
+      historicoUmidade.push({ hora: horaAtual(), umidade: umidade });
+      if (historicoUmidade.length > 12) historicoUmidade.shift();
+      drawLineChart(historicoUmidade);
+
+      const chip = document.getElementById('hist-status');
+      const st = statusUmidade(umidade);
+      chip.className = 'chip ' + st.chip;
+      chip.textContent = st.texto;
+    }
+
+    /* ──────── CONEXAO COM O SERVIDOR ──────── */
+    async function conectarAppAoServidor() {
+      const errEl    = document.getElementById('conn-error');
+      const badgeEl  = document.querySelector('.status-badge');
+      const badgeTxt = document.querySelector('.badge-txt');
+
+      try {
+        const resposta = await fetch(API_URL, {
+          headers: { 'Accept': 'application/json' }
+        });
+
+        const contentType = resposta.headers.get('content-type') || '';
+        let dadosCampo;
+
+        /* Tenta parsear como JSON independente do content-type
+           (cobre servidores que retornam text/html com corpo JSON) */
+        const texto = await resposta.text();
+        try {
+          dadosCampo = JSON.parse(texto);
+        } catch {
+          /* Servidor online mas ainda sem rota JSON configurada */
+          errEl.textContent   = 'Servidor online. Aguardando rota de dados (/status) ser configurada no servidor.';
+          errEl.style.display = 'flex';
+          if (badgeTxt) badgeTxt.textContent = 'Aguardando';
+          badgeEl.style.background = 'rgba(192,124,42,.08)';
+          return; // para aqui, tenta de novo no proximo ciclo de 5s
+        }
+
+        /* Verifica se o JSON tem os campos esperados */
+        const temDados = dadosCampo !== null
+          && typeof dadosCampo === 'object'
+          && ('umidadeStatus' in dadosCampo || 'bombaStatus' in dadosCampo || 'chuva' in dadosCampo);
+
+        if (!temDados) {
+          errEl.textContent   = 'Servidor respondeu, mas sem os campos esperados (umidadeStatus, bombaStatus, chuva).';
+          errEl.style.display = 'flex';
+          if (badgeTxt) badgeTxt.textContent = 'Aguardando';
+          badgeEl.style.background = 'rgba(192,124,42,.08)';
+          return;
+        }
+
+        /* ---------- servidor respondeu com JSON valido ---------- */
+        errEl.style.display = 'none';
+        badgeEl.style.background = '';
+        if (badgeTxt) badgeTxt.textContent = 'Conectado';
+
+        /* umidade */
+        const umidadeNum = typeof dadosCampo.umidade === 'number'
+          ? dadosCampo.umidade
+          : parseInt(dadosCampo.umidade) || 0;
+
+        atualizarRadial(umidadeNum);
+        adicionarHistorico(umidadeNum);
+
+        /* status solo */
+        const soloEl = document.getElementById('status-solo');
+        if (soloEl && dadosCampo.umidadeStatus) soloEl.innerText = dadosCampo.umidadeStatus;
+
+        /* clima */
+        const chovendo = dadosCampo.chuva === true || dadosCampo.chuva === 'true' || dadosCampo.chuva === 1;
+        atualizarCardClima(chovendo);
+
+        /* temperatura e vento (se o servidor enviar) */
+        if (dadosCampo.temperatura !== undefined) {
+          document.getElementById('temperatura').textContent = dadosCampo.temperatura + '\u00b0C';
+        }
+        if (dadosCampo.vento !== undefined) {
+          document.getElementById('vento').textContent = dadosCampo.vento + ' km/h';
+        }
+
+        /* bomba — so atualiza visual se nao houver override manual */
+        const ligada = dadosCampo.bombaStatus === true || dadosCampo.bombaStatus === 'true' || dadosCampo.bombaStatus === 1;
+        if (bombaManual === null) {
+          atualizarCardBomba(ligada);
+        }
+
+        /* timestamp */
+        const agora = new Date();
+        document.getElementById('last-update').textContent =
+          'Ultima atualizacao: ' + agora.toLocaleTimeString('pt-BR');
+
+      } catch (erro) {
+        console.error("Erro ao puxar dados do Render para o App:", erro);
+        errEl.textContent   = 'Sem conexao com o servidor. Tentando reconectar...';
+        errEl.style.display = 'flex';
+        if (badgeTxt) badgeTxt.textContent = 'Reconectando';
+        badgeEl.style.background = 'rgba(192,124,42,.10)';
+      }
+    }
+
+    /* ──────── INICIALIZA ──────── */
+    conectarAppAoServidor();
+    setInterval(conectarAppAoServidor, 5000);
+  </script>
+
+</body>
+</html>
